@@ -1,0 +1,6 @@
+"Test Gamemode"
+{
+	"base"		"sandbox"
+	"title"		"Gun In The Mud"
+	"menusystem"	"1"
+}
