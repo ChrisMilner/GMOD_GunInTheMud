@@ -21,10 +21,20 @@ function GM:PlayerLoadout( ply )
 	end
 end
 
+-- Is called when a player takes damage
+function GM:PlayerHurt(ply , atk)
+	ply:SetHealth(100)
+
+	if ply:Team() == 2 then
+		MakePlayerStuck(ply)
+	end
+end
+
 --Switches player to team 1
 function team_1(ply)
 	ply:SetTeam(1)
 	ply:Spawn()
+	ply:ChatPrint( ply:Nick().." joined team HUNTERS" )
 end
 concommand.Add( "team_1" , team_1)
 
@@ -32,5 +42,18 @@ concommand.Add( "team_1" , team_1)
 function team_2(ply)
 	ply:SetTeam(2)
 	ply:Spawn()
+	ply:ChatPrint( ply:Nick().." joined team HUNTED" )
 end
 concommand.Add( "team_2" , team_2)
+
+function MakePlayerStuck(ply)
+	ply:SetWalkSpeed(20)
+	ply:SetRunSpeed(20)
+end
+concommand.Add( "stick" , MakePlayerStuck)
+
+function UnstickPlayer(ply)
+	ply:SetWalkSpeed(250)
+	ply:SetRunSpeed(500)
+end
+concommand.Add( "unstick" , UnstickPlayer)

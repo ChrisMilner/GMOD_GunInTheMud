@@ -14,7 +14,7 @@ function set_team()
 	info_text = vgui.Create( "DLabel" , frame )
 	info_text:SetPos(ScrW() / 2 - 200, 100)
 	info_text:SetSize(400, 20)
-	info_text:SetText( "Please choose the team that you want tp be on:" )
+	info_text:SetText( "Please choose the team that you want to be on:" )
 
 	team_1 = vgui.Create( "DButton" , frame )
 	team_1:SetPos(100, 200)
