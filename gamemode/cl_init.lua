@@ -31,6 +31,7 @@ function set_team()
 	team_2:SetText( "HUNTED" )
 	team_2.DoClick = function() 
 		RunConsoleCommand( "team_2" )
+		RunConsoleCommand( "AddHunted" )
 		frame:Close()
 	end
 end

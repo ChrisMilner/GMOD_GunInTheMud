@@ -5,10 +5,13 @@ include( 'shared.lua' )
 
 PlayerStuckTable = {}
 
+function GM:initialize()
+	timer.Create( "Round Timer" , 240 , 0 , RoundEnd)
+end
+
 -- Allows user to pick teams
 function GM:PlayerInitialSpawn( ply )
 	ply:ConCommand( "team_menu" )
-	table.insert(PlayerStuckTable , ply:UserID() , false)
 end
 
 -- Assigns different weapons to players dependent on their team
@@ -30,9 +33,14 @@ end
 function GM:PlayerHurt(ply , atk)
 	ply:SetHealth(100)
 
-	if ply:Team() == 2 then
+	if ply:Team() == 2 and atk:IsPlayer() and atk:Team() == 1 then -- HUNTED attacked by HUNTER
 		MakePlayerStuck(ply)
-	elseif ply:Team() == 1 then
+		if CheckForWin() then
+			RoundEnd()
+		end
+	elseif atk:IsPlayer() and ply:Team() == 2 and atk:Team() == 2 then -- HUNTED attacked by HUNTED
+		UnstickPlayer(ply)
+	elseif ply:Team() == 1 then -- HUNTER takes damage
 		DarkenScreen(ply)
 	end
 end
@@ -89,4 +97,25 @@ function SpeedTimerCall( ply )
 	ply:SetWalkSpeed( ply:GetWalkSpeed() + 5)
 	ply:SetRunSpeed( ply:GetRunSpeed() + 5)
 	ply:ChatPrint(ply:GetWalkSpeed())
+end
+
+--Checks if all of the HUNTED are stuck
+function CheckForWin()
+	for ply in pairs(PlayerStuckTable) do
+		if ply == false then			
+			return false
+		end
+	end
+	return true
+end
+
+-- Adds the Hunted players to a table with them being unstuck
+function AddHuntedToTable(ply)
+	table.insert(PlayerStuckTable , ply:UserID() , false)
+end
+concommand.Add( "AddHunted" , AddHuntedToTable )
+
+--Called when the round ends
+function RoundEnd()
+	print( "Round End" )
 end
