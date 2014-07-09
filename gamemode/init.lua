@@ -7,7 +7,6 @@ PlayerStuckTable = {}
 
 -- Called when the game is initialised
 function GM:initialize()
-	timer.Create( "Round Timer" , 240 , 1 , RoundEnd( "HUNTED" ))
 end
 
 -- Allows user to pick teams
@@ -16,18 +15,23 @@ function GM:PlayerInitialSpawn( ply )
 end
 
 -- Assigns different weapons to players dependent on their team
-function GM:PlayerLoadout( ply )
-
+function GM:PlayerSpawn( ply )
 	ply:StripWeapons()
 
-	ply:ChatPrint( "Player Loadout Function Called" )
+	if ply:Team() ==  1 then -- HUNTER
+		ply:SetModel( "models/player/barney.mdl" )
 
-	if ply:Team() ==  1 then
-		ply:Give( "weapon_pistol" )
 		ply:Give( "weapon_crowbar" )
-	elseif ply:Team() == 2 then
+
+		ply:SetRunSpeed( 500 )
+	elseif ply:Team() == 2 then	 -- HUNTED
+		ply:SetModel( "models/player/Eli.mdl" )
+
 		ply:Give( "weapon_ar2" )
+		ply:Give( "weapon_crowbar" )
 		ply:GiveAmmo( 500 , "AR2" , false)
+
+		--ply:SetRunSpeed( 250 )
 	end
 end
 
@@ -56,6 +60,7 @@ concommand.Add( "team_1" , team_1)
 function team_2(ply)
 	ply:SetTeam(2)
 	ply:Spawn()
+	ply:SetRunSpeed( 250 )
 	ply:ChatPrint( ply:Nick().." joined team HUNTED" )
 end
 concommand.Add( "team_2" , team_2)
@@ -96,9 +101,9 @@ concommand.Add( "dark" , DarkenScreen )
 
 -- Called to increase the run/walk speed
 function SpeedTimerCall( ply )
-	ply:SetWalkSpeed( ply:GetWalkSpeed() + 5)
-	ply:SetRunSpeed( ply:GetRunSpeed() + 5)
-	ply:ChatPrint(ply:GetWalkSpeed())
+	ply:ChatPrint( ply:GetWalkSpeed().."  "..ply:GetRunSpeed())
+	if ply:GetWalkSpeed() < 246 then ply:SetWalkSpeed( ply:GetWalkSpeed() + 5) end
+	if ply:GetRunSpeed() < 496 then ply:SetRunSpeed( ply:GetRunSpeed() + 5) end
 end
 
 -- Checks if all of the HUNTED are stuck
@@ -117,7 +122,8 @@ concommand.Add( "AddHunted" , AddHuntedToTable )
 
 -- Called when the round ends
 function RoundEnd( winner )
-	print( "Round End! "..winner.." Wins!!" )
+	--DrawEndMsg( winner )
+	print( winner.."WINS!" )
 	timer.Create( "PostGameTimer" , 10 , 1 , function() 
 		for x , p in pairs(player.GetHumans()) do 
 			SwitchTeam( p )
@@ -129,9 +135,9 @@ end
 -- Switches the teams
 function SwitchTeam( ply )
 	if ply:Team() == 1 then 
-		RunConsoleCommand( "team_2" )
+		team_2( ply )
 	elseif ply:Team() == 2 then 
-		RunConsoleCommand( "team_1" )
+		team_1( ply )
 	end
 
 	ply:ChatPrint( "Teams Switched!" )
