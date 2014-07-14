@@ -36,3 +36,55 @@ function set_team()
 	end
 end
 concommand.Add( "team_menu" , set_team)
+
+function HunterVictoryScreen()
+	local frame = vgui.Create( "DFrame" )
+	frame:SetPos(100, 100)
+	frame:SetSize(ScrW() - 200, ScrH() - 200)
+	frame:SetTitle( "Hunters Win" )
+	frame:SetVisible( true )
+	frame:SetDraggable( false )
+	frame:ShowCloseButton( true )
+	frame:MakePopup()
+
+	HuntersWin = vgui.Create( "DLabel" , frame )
+	HuntersWin:SetPos(ScrW() / 2 - 200, 100)
+	HuntersWin:SetSize(400, 20)
+	HuntersWin:SetFont( "DermaLarge" )
+	HuntersWin:SetText( "Hunters Win The Round!!" )
+end
+concommand.Add( "HunterWinScreen" , HunterVictoryScreen)
+
+function HuntedVictoryScreen()
+	local frame = vgui.Create( "DFrame" )
+	frame:SetPos(100, 100)
+	frame:SetSize(ScrW() - 200, ScrH() - 200)
+	frame:SetTitle( "The Hunted Win" )
+	frame:SetVisible( true )
+	frame:SetDraggable( false )
+	frame:ShowCloseButton( true )
+	frame:MakePopup()
+
+	HuntersWin = vgui.Create( "DLabel" , frame )
+	HuntersWin:SetPos(ScrW() / 2 - 200, 100)
+	HuntersWin:SetSize(400, 20)
+	HuntersWin:SetFont( "DermaLarge" )
+	HuntersWin:SetText( "The Hunted Win The Round!!" )
+end
+concommand.Add( "HuntedWinScreen" , HuntedVictoryScreen)
+
+function GM:HUDPaint()
+	if  seconds < 10 then
+		draw.DrawText( "0"..minutes..":0"..seconds , "DermaLarge" , ScrW() / 2 - 10 , 0 , Color(255,255,255,255) , TEXT_ALIGN_CENTER )
+	else
+		draw.DrawText( "0"..minutes..":"..seconds , "DermaLarge" , ScrW() / 2 - 10 , 0 , Color(255,255,255,255) , TEXT_ALIGN_CENTER )
+	end
+end
+
+function CalculateTime( msg )
+	local time = msg:ReadLong()
+	minutes = math.floor(time / 60)
+	seconds = time % 60
+	print(minutes.."  "..seconds)
+end
+usermessage.Hook( "time_info" , CalculateTime )
