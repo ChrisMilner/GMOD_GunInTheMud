@@ -37,6 +37,7 @@ function set_team()
 end
 concommand.Add( "team_menu" , set_team)
 
+--Displays a screen saying tht the hunters win
 function HunterVictoryScreen()
 	local frame = vgui.Create( "DFrame" )
 	frame:SetPos(100, 100)
@@ -55,6 +56,7 @@ function HunterVictoryScreen()
 end
 concommand.Add( "HunterWinScreen" , HunterVictoryScreen)
 
+--Displays a screen saying tht the hunted win
 function HuntedVictoryScreen()
 	local frame = vgui.Create( "DFrame" )
 	frame:SetPos(100, 100)
@@ -73,6 +75,7 @@ function HuntedVictoryScreen()
 end
 concommand.Add( "HuntedWinScreen" , HuntedVictoryScreen)
 
+-- Adds in the timer displayed at the top of the screen
 function GM:HUDPaint()
 	if  seconds < 10 then
 		draw.DrawText( "0"..minutes..":0"..seconds , "DermaLarge" , ScrW() / 2 - 10 , 0 , Color(255,255,255,255) , TEXT_ALIGN_CENTER )
@@ -81,10 +84,10 @@ function GM:HUDPaint()
 	end
 end
 
+-- Converts the number of seconds to minutes and seconds
 function CalculateTime( msg )
 	local time = msg:ReadLong()
 	minutes = math.floor(time / 60)
 	seconds = time % 60
-	print(minutes.."  "..seconds)
 end
 usermessage.Hook( "time_info" , CalculateTime )

@@ -3,18 +3,27 @@ AddCSLuaFile( "shared.lua" )
 
 include( 'shared.lua' )
 
-PlayerStuckTable = {}
+RoundTimeLimit = 180
+WalkSpeed = 250
+HunterRunSpeed = 400
+StuckSpeed = 20
+MinimumWalkSpeed = 50
+MinimumRunSpeed = 70
+SpeedReduction = 10
+SpeedIncrease = 5
 
 -- Called when the game is initialised
 function GM:Initialize()
 	UseModels = true
 	CreateRoundTimer()
+	InRound = true
+	PlayerStuckTable = {}
 end
 
 function CreateRoundTimer()
-	time = 0
+	time = RoundTimeLimit
 	timer.Create( "round_timer" , 180 , 1 , function() RoundEnd( "HUNTED" ) end )
-	timer.Create( "display_timer" , 1 , 180 , function() SendTime( time ) end)
+	timer.Create( "display_timer" , 1 , RoundTimeLimit , function() SendTime( time ) end)
 end
 
 function SendTime()
@@ -22,7 +31,7 @@ function SendTime()
 		umsg.Long(time)
 	umsg.End()
 
-	time = time + 1
+	time = time - 1
 end
 
 -- Allows user to pick teams
@@ -35,17 +44,19 @@ function GM:PlayerSpawn( ply )
 	ply:StripWeapons()
 
 	if ply:Team() ==  1 then -- HUNTER
-		if UseModels == true then  ply:SetModel( "models/player/barney.mdl" ) end
+		ply:SetModel( "models/player/barney.mdl" ) 
 
 		ply:Give( "weapon_crowbar" )
 
-		ply:SetRunSpeed( 400 )
+		ply:SetRunSpeed( HunterRunSpeed )
 	elseif ply:Team() == 2 then	 -- HUNTED
-		if UseModels == true then  ply:SetModel( "models/player/Eli.mdl" ) end
+		ply:SetModel( "models/player/Eli.mdl" )
 
 		ply:Give( "weapon_ar2" )
 		ply:Give( "weapon_crowbar" )
-		ply:GiveAmmo( 500 , "AR2" , false)	-- TODO Change to stop ammo incrementation
+		ply:GiveAmmo( 500 - ply:GetAmmoCount( "AR2" ) , "AR2" , false)	-- TODO Change to stop ammo incrementation
+
+		ply:SetRunSpeed( WalkSpeed )
 	end
 end
 
@@ -66,6 +77,7 @@ end
 function team_1(ply)
 	ply:SetTeam(1)
 	ply:Spawn()
+	ply:SetRunSpeed( HunterRunSpeed )
 	ply:ChatPrint( ply:Nick().." joined team HUNTERS" )
 end
 concommand.Add( "team_1" , team_1)
@@ -74,15 +86,15 @@ concommand.Add( "team_1" , team_1)
 function team_2(ply)
 	ply:SetTeam(2)
 	ply:Spawn()
-	ply:SetRunSpeed( 250 )
+	ply:SetRunSpeed( WalkSpeed )
 	ply:ChatPrint( ply:Nick().." joined team HUNTED" )
 end
 concommand.Add( "team_2" , team_2)
 
 -- Slows the player down massively
 function MakePlayerStuck( ply )
-	ply:SetWalkSpeed(20)
-	ply:SetRunSpeed(20)
+	ply:SetWalkSpeed( StuckSpeed )
+	ply:SetRunSpeed( StuckSpeed )
 	PlayerStuckTable[ ply:UserID() ] = true
 	if CheckForWin() then RoundEnd( "HUNTERS") end
 end
@@ -90,8 +102,9 @@ concommand.Add( "stick" , MakePlayerStuck)
 
 -- Usticks  the player ressetting their speed to normal
 function UnstickPlayer( ply )
-	ply:SetWalkSpeed(250)
-	ply:SetRunSpeed(500)
+	ply:SetWalkSpeed( WalkSpeed )
+	if ply:Team() == 1 then ply:SetRunSpeed( HunterRunSpeed )
+	elseif ply:Team() == 2 then ply:SetRunSpeed( WalkSpeed ) end
 	PlayerStuckTable[ ply:UserID() ] = false
 end
 concommand.Add( "unstick" , UnstickPlayer)
@@ -104,24 +117,27 @@ concommand.Add( "amistuck" , IsPlayerStuck)
 
 -- Darkens the screen and slows speed when a hunter is hit
 function DarkenScreen( ply )
-	ply:ScreenFade(2 , Color(0,0,0,100) , 0.1 , 1.5)
-	if ply:GetWalkSpeed() > 99 then  ply:SetWalkSpeed(ply:GetWalkSpeed() - 5) end
-	if ply:GetRunSpeed() > 99 then  ply:SetRunSpeed(ply:GetRunSpeed() - 5) end
-	timer.Create( "SpeedTimer" , 1 , (250 - ply:GetWalkSpeed()) / 5 , function() SpeedTimerCall(ply) end)
+	ply:ScreenFade(1 , Color(0,0,0,245) , 0.5 , 0.5)
+	if ply:GetWalkSpeed() >= MinimumWalkSpeed then  ply:SetWalkSpeed( ply:GetWalkSpeed() - SpeedReduction ) end 
+	if ply:GetRunSpeed() >= MinimumRunSpeed then  ply:SetRunSpeed( ply:GetRunSpeed() - 2 * SpeedReduction ) end
+	timer.Create( "SpeedTimer" , 1 , math.floor((WalkSpeed - ply:GetWalkSpeed()) / 5) , function() SpeedTimerCall(ply) end)
 end
 concommand.Add( "dark" , DarkenScreen )
 
 -- Called to increase the run/walk speed
 function SpeedTimerCall( ply )
+	if ply:Team() == 2 then return end
 	ply:ChatPrint( ply:GetWalkSpeed().."  "..ply:GetRunSpeed())
-	if ply:GetWalkSpeed() < 246 then ply:SetWalkSpeed( ply:GetWalkSpeed() + 5) end
-	if ply:GetRunSpeed() < 496 then ply:SetRunSpeed( ply:GetRunSpeed() + 5) end
+	if ply:GetWalkSpeed() < 246 then ply:SetWalkSpeed( ply:GetWalkSpeed() + SpeedIncrease) end
+	if ply:GetRunSpeed() < 396 then ply:SetRunSpeed( ply:GetRunSpeed() + SpeedIncrease) end 
 end
 
 -- Checks if all of the HUNTED are stuck
 function CheckForWin()
-	for ply in pairs(PlayerStuckTable) do
-		if ply == false then return false end
+	if InRound == false then return end
+
+	for x , ply in pairs(GetTeam1()) do
+		if IsPlayerStuck( ply ) == false then return false end
 	end
 	return true
 end
@@ -135,11 +151,13 @@ concommand.Add( "AddHunted" , AddHuntedToTable )
 -- Called when the round ends
 function RoundEnd( winner )
 	print( winner.." WINS!" )
+	InRound = false
+	ClearTable( PlayerStuckTable )
 
 	if winner == "HUNTED" then
-		RunConsoleCommand( "HuntedWinScreen" )
+		DisplayWinScreen( "HuntedWinScreen" )
 	elseif winner == "HUNTERS" then
-		RunConsoleCommand( "HunterWinScreen" )
+		DisplayWinScreen( "HunterWinScreen" )
 	end
 
 	timer.Create( "PostGameTimer" , 10 , 1 , function() 
@@ -148,6 +166,7 @@ function RoundEnd( winner )
 			UnstickPlayer( p ) 
 		end
 		CreateRoundTimer()
+		InRound = true
 	end)
 end
 
@@ -163,9 +182,28 @@ function SwitchTeam( ply )
 end
 concommand.Add( "switch" , SwitchTeam)
 
--- Toggles between using models
-function ToggleModels()
-	if UseModels == false then UseModels = true
-	else UseModels = false end
+-- Runs the console command for all of the players
+function DisplayWinScreen( command )
+	for x , p in pairs(player.GetHumans()) do
+		p:ConCommand( command )
+	end
 end
-concommand.Add( "dick_guns" , ToggleModels)
+
+-- Deletes all content from the table
+function ClearTable( table )
+	for x , v in pairs( table ) do
+		table[x] = nil
+	end
+end
+
+-- Returns a table of all players in team 1
+function GetTeam1()
+	local t1 = {}
+
+	for x , p in pairs(player.GetHumans()) do
+		if p:Team() == 2 then
+			table.insert( t1 , p )
+		end
+	end
+	return t1
+end
