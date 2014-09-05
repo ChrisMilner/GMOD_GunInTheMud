@@ -1,5 +1,10 @@
 include( "shared.lua" )
 
+t1 = {}
+t2 = {}
+HunterText = ""
+HuntedText = ""
+
 --Creates a window allowing the player to choose a team
 function set_team()
 	local frame = vgui.Create( "DFrame" )
@@ -50,7 +55,7 @@ function HunterVictoryScreen()
 
 	HuntersWin = vgui.Create( "DLabel" , frame )
 	HuntersWin:SetPos(ScrW() / 2 - 200, 100)
-	HuntersWin:SetSize(400, 20)
+	HuntersWin:SetSize(400, 50)
 	HuntersWin:SetFont( "DermaLarge" )
 	HuntersWin:SetText( "Hunters Win The Round!!" )
 end
@@ -69,7 +74,7 @@ function HuntedVictoryScreen()
 
 	HuntersWin = vgui.Create( "DLabel" , frame )
 	HuntersWin:SetPos(ScrW() / 2 - 200, 100)
-	HuntersWin:SetSize(400, 20)
+	HuntersWin:SetSize(400, 50)
 	HuntersWin:SetFont( "DermaLarge" )
 	HuntersWin:SetText( "The Hunted Win The Round!!" )
 end
@@ -82,12 +87,76 @@ function GM:HUDPaint()
 	else
 		draw.DrawText( "0"..minutes..":"..seconds , "DermaLarge" , ScrW() / 2 - 10 , 0 , Color(255,255,255,255) , TEXT_ALIGN_CENTER )
 	end
+	draw.DrawText( TeamName , "DermaLarge" , ScrW() - 80 , ScrH() - 50 , TeamColour , TEXT_ALIGN_CENTER )
+end
+
+--Displays the scoreboard when the button is pressed
+function GM:ScoreboardShow()
+	--[[Scoreboard = vgui.Create( "DFrame" )
+	Scoreboard:SetPos(100, 100)
+	Scoreboard:SetSize(ScrW() - 200, ScrH() - 200)
+	Scoreboard:SetTitle( "Scoreboard" )
+	Scoreboard:SetVisible( true )
+	Scoreboard:SetDraggable( false )
+	Scoreboard:ShowCloseButton( false )
+	Scoreboard:MakePopup()
+
+	HuntersPlayers = vgui.Create( "DLabel" , Scoreboard )
+	HuntersPlayers:SetPos(ScrW() / 2 - 550, 100)
+	HuntersPlayers:SetSize(400, 500)
+	HuntersPlayers:SetFont( "DermaLarge" )
+	HuntersPlayers:SetText( "Hunters\n"..HunterText )
+
+	HuntedPlayers = vgui.Create( "DLabel" , Scoreboard )
+	HuntedPlayers:SetPos(ScrW() / 2 , 100)
+	HuntedPlayers:SetSize(400, 500)
+	HuntedPlayers:SetFont( "DermaLarge" )
+	HuntedPlayers:SetText( "Hunted\n"..HuntedText )]]
+end
+
+--Hides the scoreboard when the button is released
+function GM:ScoreboardHide()
+	--Scoreboard:Close()
 end
 
 -- Converts the number of seconds to minutes and seconds
-function CalculateTime( msg )
-	local time = msg:ReadLong()
+function GetTimeInfo( len , ply )
+	local time = net.ReadInt(9)
 	minutes = math.floor(time / 60)
 	seconds = time % 60
 end
-usermessage.Hook( "time_info" , CalculateTime )
+net.Receive( "time_info" , GetTimeInfo )
+
+-- Recieves the team name message and chooses the correct colour
+function GetTeamName( len , ply )
+	TeamName = net.ReadString()
+
+	if TeamName == "HUNTER" then
+		TeamColour = Color(255,50,50,255)
+	elseif TeamName == "HUNTED" then
+		TeamColour = Color(50,255,50,255)
+	else
+		TeamColour = Color(255,255,255,255)
+	end
+end
+net.Receive( "team_info" , GetTeamName )
+
+function GetTeamData( len , ply )
+	if net.ReadInt(2) == 1 then
+		t1 = net.ReadTable()
+		HunterText = GetTeamText( t1 )
+	else
+		t2 = net.ReadTable()
+		HuntedText = GetTeamText( t2 )
+	end
+end
+net.Receive( "team_data" , GetTeamData )
+
+function GetTeamText( table )
+	local text = ""
+	for x , p in pairs(table) do
+		local name = p:Nick()
+		text = text.."\n"..name
+	end
+	return text
+end

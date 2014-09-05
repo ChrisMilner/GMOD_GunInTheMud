@@ -3,6 +3,10 @@ AddCSLuaFile( "shared.lua" )
 
 include( 'shared.lua' )
 
+util.AddNetworkString( "time_info" )
+util.AddNetworkString( "team_info" )
+util.AddNetworkString( "team_data" )
+
 RoundTimeLimit = 180
 WalkSpeed = 250
 HunterRunSpeed = 400
@@ -14,24 +18,32 @@ SpeedIncrease = 5
 
 -- Called when the game is initialised
 function GM:Initialize()
-	UseModels = true
 	CreateRoundTimer()
 	InRound = true
 	PlayerStuckTable = {}
 end
 
+-- Creates the round timers
 function CreateRoundTimer()
 	time = RoundTimeLimit
 	timer.Create( "round_timer" , 180 , 1 , function() RoundEnd( "HUNTED" ) end )
 	timer.Create( "display_timer" , 1 , RoundTimeLimit , function() SendTime( time ) end)
 end
 
+--Sends the time to the client
 function SendTime()
-	umsg.Start( "time_info" )
-		umsg.Long(time)
-	umsg.End()
+	net.Start( "time_info" )
+		net.WriteInt( time , 9 )
+	net.Send(player.GetHumans())
 
 	time = time - 1
+end
+
+--Sends the team name to the client
+function SendTeamName( team )
+	net.Start( "team_info" )
+		net.WriteString( team )
+	net.Send(player.GetHumans())
 end
 
 -- Allows user to pick teams
@@ -78,7 +90,11 @@ function team_1(ply)
 	ply:SetTeam(1)
 	ply:Spawn()
 	ply:SetRunSpeed( HunterRunSpeed )
+	SendTeamName( "HUNTER" )
 	ply:ChatPrint( ply:Nick().." joined team HUNTERS" )
+
+	SendTeamData( 1 , GetTeam1() )
+	SendTeamData( 2 , GetTeam2() )
 end
 concommand.Add( "team_1" , team_1)
 
@@ -87,7 +103,11 @@ function team_2(ply)
 	ply:SetTeam(2)
 	ply:Spawn()
 	ply:SetRunSpeed( WalkSpeed )
+	SendTeamName( "HUNTED" )
 	ply:ChatPrint( ply:Nick().." joined team HUNTED" )
+
+	SendTeamData( 1 , GetTeam1() )
+	SendTeamData( 2 , GetTeam2() )
 end
 concommand.Add( "team_2" , team_2)
 
@@ -136,7 +156,7 @@ end
 function CheckForWin()
 	if InRound == false then return end
 
-	for x , ply in pairs(GetTeam1()) do
+	for x , ply in pairs(GetTeam2()) do
 		if IsPlayerStuck( ply ) == false then return false end
 	end
 	return true
@@ -201,9 +221,30 @@ function GetTeam1()
 	local t1 = {}
 
 	for x , p in pairs(player.GetHumans()) do
-		if p:Team() == 2 then
+		if p:Team() == 1 then
 			table.insert( t1 , p )
 		end
 	end
 	return t1
+end
+
+-- Returns a table of all of the players in team 2
+function GetTeam2()
+	local t2 = {}
+
+	for x , p in pairs(player.GetHumans()) do
+		if p:Team() == 2 then
+			table.insert( t2 , p )
+		end
+	end
+	return t2
+end
+
+function SendTeamData( TeamNum , table )
+	net.Start( "team_data" )
+		net.WriteInt( TeamNum , 2 )
+		net.WriteTable( table ) 
+	net.Send(player.GetHumans())
+
+	print("Team Data Sent")
 end
